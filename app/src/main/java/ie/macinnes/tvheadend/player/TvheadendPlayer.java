@@ -234,7 +234,6 @@ public class TvheadendPlayer implements Player.EventListener {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     public void setPlaybackParams(PlaybackParams params) {
         float rawSpeed = params.getSpeed();
         int speed = (int) rawSpeed;

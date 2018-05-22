@@ -8,18 +8,13 @@ apply from: '../play.gradle'
 android {
     compileSdkVersion project.ext.compileSdkVersion
     buildToolsVersion project.ext.buildToolsVersion
-
     defaultConfig {
         applicationId "ie.macinnes.tvheadend"
         setProperty("archivesBaseName", applicationId)
-
-        minSdkVersion project.ext.minSdkVersion
+        minSdkVersion 24
         targetSdkVersion project.ext.targetSdkVersion
-
-        versionCode project.ext.versionCode
         versionName project.ext.versionName
     }
-
     buildTypes {
         debug {
             versionNameSuffix "-SNAPSHOT"
@@ -30,9 +25,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
     lintOptions {
         disable 'GoogleAppIndexingWarning'
+    }
+    productFlavors {
     }
 }
 
@@ -45,20 +41,17 @@ repositories {
 dependencies {
     implementation 'ie.macinnes.htsp:android-htsp:v0.0.2'
     // Used for testing local HTSP lib builds
-//    implementation(name: 'library-debug', ext: 'aar')
-
+    //    implementation(name: 'library-debug', ext: 'aar')
     implementation 'com.android.support:support-v4:27.1.0'
     implementation 'com.android.support:leanback-v17:27.1.0'
     implementation 'com.android.support:preference-leanback-v17:27.1.0'
-
     implementation 'com.google.android.exoplayer:exoplayer-core:2.7.1k1'
     implementation 'com.google.android.exoplayer:exoplayer-ui:2.7.1k1'
     implementation 'com.google.android.exoplayer:extension-ffmpeg:2.7.1k1'
     // Used for testing local exoplayer builds
-//    implementation(name: 'library-core-release', ext: 'aar')
-//    implementation(name: 'library-ui-release', ext: 'aar')
-//    implementation(name: 'extension-ffmpeg-release', ext: 'aar')
-
+    //    implementation(name: 'library-core-release', ext: 'aar')
+    //    implementation(name: 'library-ui-release', ext: 'aar')
+    //    implementation(name: 'extension-ffmpeg-release', ext: 'aar')
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
     releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
     testImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
