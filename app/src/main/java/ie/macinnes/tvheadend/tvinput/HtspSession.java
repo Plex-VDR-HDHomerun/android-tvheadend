@@ -199,12 +199,9 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
         mTvheadendPlayer.seek(timeMs);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onTimeShiftSetPlaybackParams(PlaybackParams params) {
-        Log.d(TAG, "onTimeShiftSetPlaybackParams: " + params);
-
-        Toast.makeText(mContext, "Unsupported", Toast.LENGTH_SHORT).show();
+        mTvheadendPlayer.setPlaybackParams(params);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
