@@ -20,6 +20,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.media.PlaybackParams;
 import android.media.tv.TvInputManager;
+import android.media.tv.TvContract;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.media.tv.TvTrackInfo;
 import android.net.Uri;
 import android.os.Build;
@@ -34,6 +37,7 @@ import android.widget.Toast;
 
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.Format;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -52,6 +56,7 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
     private final Context mContext;
     private final int mSessionNumber;
     private final Handler mHandler;
+    private Uri mCurrentChannelUri;
     private final CaptioningManager mCaptioningManager;
     private final SharedPreferences mSharedPreferences;
 
@@ -59,12 +64,15 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
 
     private Runnable mPlayChannelRunnable;
 
+    private ContentResolver mContentResolver;
+
     public HtspSession(Context context, SimpleHtspConnection connection) {
         super(context);
 
         mContext = context;
         mSessionNumber = sSessionCounter.getAndIncrement();
         mHandler = new Handler();
+        mContentResolver =  mContext.getContentResolver();
         mCaptioningManager = (CaptioningManager) context.getSystemService(Context.CAPTIONING_SERVICE);
 
         mSharedPreferences = mContext.getSharedPreferences(
@@ -91,6 +99,9 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
 
         // Notify we are busy tuning
         notifyVideoUnavailable(TvInputManager.VIDEO_UNAVAILABLE_REASON_TUNING);
+
+        // set current channel uri
+        mCurrentChannelUri = channelUri;
 
         mHandler.removeCallbacks(mPlayChannelRunnable);
         mPlayChannelRunnable = new PlayChannelRunnable(channelUri);
@@ -212,6 +223,11 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
     @Override
     public long onTimeShiftGetCurrentPosition() {
         return mTvheadendPlayer.getTimeshiftCurrentPosition();
+    }
+
+    @Override
+    public void onRenderedFirstFrame() {
+        notifyVideoAvailable();
     }
 
     // Inner Classes
