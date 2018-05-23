@@ -204,13 +204,11 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
         mTvheadendPlayer.setPlaybackParams(params);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public long onTimeShiftGetStartPosition() {
         return mTvheadendPlayer.getTimeshiftStartPosition();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public long onTimeShiftGetCurrentPosition() {
         return mTvheadendPlayer.getTimeshiftCurrentPosition();
