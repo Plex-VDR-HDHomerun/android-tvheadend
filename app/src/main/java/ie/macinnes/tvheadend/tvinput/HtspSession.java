@@ -40,6 +40,8 @@ import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Format;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ie.macinnes.htsp.SimpleHtspConnection;
@@ -47,6 +49,8 @@ import ie.macinnes.tvheadend.Constants;
 import ie.macinnes.tvheadend.R;
 import ie.macinnes.tvheadend.TvContractUtils;
 import ie.macinnes.tvheadend.player.TvheadendPlayer;
+import ie.macinnes.tvheadend.player.StreamBundle;
+
 
 // TODO: Rename?
 public class HtspSession extends TvInputService.Session implements TvheadendPlayer.Listener {
@@ -111,19 +115,6 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
     }
 
     @Override
-    public void onTimeShiftPlay(Uri recordedProgramUri) {
-        // Start Playback of a Recorded Program
-        Log.d(TAG, "Session onTimeShiftPlay (" + mSessionNumber + "): " + recordedProgramUri.toString());
-
-        // Notify we are busy tuning
-        notifyVideoUnavailable(TvInputManager.VIDEO_UNAVAILABLE_REASON_TUNING);
-
-        mHandler.removeCallbacks(mPlayChannelRunnable);
-        mPlayChannelRunnable = new PlayRecordedProgramRunnable(recordedProgramUri);
-        mHandler.post(mPlayChannelRunnable);
-    }
-
-    @Override
     public void onSetCaptionEnabled(boolean enabled) {
         Log.d(TAG, "Session onSetCaptionEnabled: " + enabled + " (" + mSessionNumber + ")");
     }
@@ -171,18 +162,12 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
 
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-        Log.d(TAG, "Session onPlayerStateChanged: " + playbackState + " (" + mSessionNumber + ")");
+        if(playWhenReady && playbackState == com.google.android.exoplayer2.Player.STATE_BUFFERING) {
+            notifyVideoUnavailable(TvInputManager.VIDEO_UNAVAILABLE_REASON_BUFFERING);
+        }
 
-        switch (playbackState) {
-            case Player.STATE_READY:
-                notifyVideoAvailable();
-                break;
-            case Player.STATE_BUFFERING:
-                notifyVideoUnavailable(TvInputManager.VIDEO_UNAVAILABLE_REASON_BUFFERING);
-                break;
-            case Player.STATE_ENDED:
-                notifyVideoUnavailable(TvInputManager.VIDEO_UNAVAILABLE_REASON_UNKNOWN);
-                break;
+        if(playWhenReady && playbackState == com.google.android.exoplayer2.Player.STATE_READY) {
+            notifyVideoAvailable();
         }
     }
 
@@ -200,13 +185,11 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
     @Override
     public void onTimeShiftResume() {
         Log.d(TAG, "onTimeShiftResume");
-        mTvheadendPlayer.resume();
+        mTvheadendPlayer.play();
     }
 
     @Override
     public void onTimeShiftSeekTo(long timeMs) {
-        Log.d(TAG, "onTimeShiftSeekTo: " + timeMs);
-
         mTvheadendPlayer.seek(timeMs);
     }
 
@@ -217,12 +200,22 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
 
     @Override
     public long onTimeShiftGetStartPosition() {
-        return mTvheadendPlayer.getTimeshiftStartPosition();
+        if(mTvheadendPlayer == null) {
+            return System.currentTimeMillis();
+        }
+
+        return mTvheadendPlayer.getStartPosition();
     }
 
     @Override
     public long onTimeShiftGetCurrentPosition() {
-        return mTvheadendPlayer.getTimeshiftCurrentPosition();
+        long currentPos = System.currentTimeMillis();
+
+        if(mTvheadendPlayer == null) {
+            return currentPos;
+        }
+
+        return mTvheadendPlayer.getCurrentPosition();
     }
 
     @Override

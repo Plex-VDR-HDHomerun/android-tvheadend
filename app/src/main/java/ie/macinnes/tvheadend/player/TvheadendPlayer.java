@@ -194,19 +194,44 @@ public class TvheadendPlayer implements com.google.android.exoplayer2.Player.Eve
         mExoPlayer.setVolume(volume);
     }
 
-    public boolean selectTrack(int type, String trackId) {
-        return mTrackSelector.selectTrack(type, trackId);
+    public long getStartPosition() {
+        return position.getStartPosition();
     }
 
-    public void resume() {
-        mExoPlayer.setPlayWhenReady(true);
+    public long getEndPosition() {
+        return position.getEndPosition();
+    }
 
-        if (mDataSource != null) {
-            Log.d(TAG, "Resuming HtspDataSource");
-            mDataSource.resume();
-        } else {
-            Log.w(TAG, "Unable to resume, no HtspDataSource available");
+    public long getCurrentPosition() {
+        long timeUs = mExoPlayer.getCurrentPosition() * 1000;
+        long startPos = position.getStartPosition();
+        long endPos = position.getEndPosition();
+
+        long pos = Math.max(position.positionFromTimeUs(timeUs), startPos);
+
+        // clamp to end position (if we already have a valid endposition)
+        if(endPos > startPos) {
+            return Math.min(pos, endPos);
         }
+
+        return pos;
+    }
+
+    public long getBufferedPosition() {
+        long timeUs = mExoPlayer.getBufferedPosition() * 1000;
+        return position.positionFromTimeUs(timeUs);
+    }
+
+    public long getDurationSinceStart() {
+        return getCurrentPosition() - getStartPosition();
+    }
+
+    public long getDuration() {
+        return position.getDuration();
+    }
+
+    public int getPlaybackState() {
+        return mExoPlayer.getPlaybackState();
     }
 
     public void seek(long position) {
@@ -234,50 +259,10 @@ public class TvheadendPlayer implements com.google.android.exoplayer2.Player.Eve
         return !mExoPlayer.getPlayWhenReady();
     }
 
-    private void stop() {
+    public void stop() {
         trickPlayController.reset();
         mExoPlayer.stop();
         position.reset();
-        mTrackSelector.clearSelectionOverrides();
-        mHtspSubscriptionDataSourceFactory.releaseCurrentDataSource();
-        mHtspFileInputStreamDataSourceFactory.releaseCurrentDataSource();
-
-        if (mMediaSource != null) {
-            mMediaSource.releaseSource();
-        }
-    }
-    public long getTimeshiftStartPosition() {
-        if (mDataSource != null) {
-            long startTime = mDataSource.getTimeshiftStartTime();
-            if (startTime != INVALID_TIMESHIFT_TIME) {
-                // For live content
-                return startTime / 1000;
-            } else {
-                // For recorded content
-                return 0;
-            }
-        } else {
-            Log.w(TAG, "Unable to getTimeshiftStartPosition, no HtspDataSource available");
-        }
-
-        return INVALID_TIMESHIFT_TIME;
-    }
-
-    public long getTimeshiftCurrentPosition() {
-        if (mDataSource != null) {
-            long offset = mDataSource.getTimeshiftOffsetPts();
-            if (offset != INVALID_TIMESHIFT_TIME) {
-                // For live content
-                return System.currentTimeMillis() + (offset / 1000);
-            } else {
-                // For recorded content
-                mExoPlayer.getCurrentPosition();
-            }
-        } else {
-            Log.w(TAG, "Unable to getTimeshiftCurrentPosition, no HtspDataSource available");
-        }
-
-        return INVALID_TIMESHIFT_TIME;
     }
 
     public View getOverlayView(CaptioningManager.CaptionStyle captionStyle, float fontScale) {
@@ -459,6 +444,10 @@ public class TvheadendPlayer implements com.google.android.exoplayer2.Player.Eve
     }
 
     @Override
+    public void onPositionDiscontinuity(int reason) {
+    }
+
+    @Override
     public void onRenderedFirstFrame(Surface surface) {
         if(trickPlayController.activated()) {
             trickPlayController.postTick();
@@ -585,14 +574,24 @@ public class TvheadendPlayer implements com.google.android.exoplayer2.Player.Eve
         mListener.onPlayerStateChanged(playWhenReady, playbackState);
     }
 
-    @Override
-    public void onPlayerError(ExoPlaybackException error) {
-        mListener.onPlayerError(error);
+    public boolean selectTrack(int type, String trackId) {
+        return mTrackSelector.selectTrack(type, trackId);
+    }
+
+    public void resume() {
+        mExoPlayer.setPlayWhenReady(true);
+
+        if (mDataSource != null) {
+            Log.d(TAG, "Resuming HtspDataSource");
+            mDataSource.resume();
+        } else {
+            Log.w(TAG, "Unable to resume, no HtspDataSource available");
+        }
     }
 
     @Override
-    public void onPositionDiscontinuity(int reason) {
-
+    public void onPlayerError(ExoPlaybackException error) {
+        mListener.onPlayerError(error);
     }
 
     @Override
