@@ -16,6 +16,7 @@
 
 package ie.macinnes.tvheadend.player;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Point;
@@ -26,7 +27,6 @@ import android.media.tv.TvTrackInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
-import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Display;
@@ -54,6 +54,8 @@ import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.extractor.ExtractorsFactory;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
+import com.google.android.exoplayer2.video.VideoRendererEventListener;
+import com.google.android.exoplayer2.decoder.DecoderCounters;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
@@ -78,9 +80,10 @@ import ie.macinnes.htsp.SimpleHtspConnection;
 import ie.macinnes.tvheadend.Constants;
 import ie.macinnes.tvheadend.R;
 import ie.macinnes.tvheadend.TvContractUtils;
-import ie.macinnes.tvheadend.TvhMappings;
+import ie.macinnes.tvheadend.player.utils.TrickPlayController;
+import ie.macinnes.tvheadend.player.source.PositionReference;
 
-public class TvheadendPlayer implements Player.EventListener {
+public class TvheadendPlayer implements Player.EventListener, VideoRendererEventListener {
     private static final String TAG = TvheadendPlayer.class.getName();
 
     private static final float CAPTION_LINE_HEIGHT_RATIO = 0.0533f;
@@ -103,6 +106,8 @@ public class TvheadendPlayer implements Player.EventListener {
          * @param error The error.
          */
         void onPlayerError(ExoPlaybackException error);
+
+        void onRenderedFirstFrame();
 
         /**
          * Called when the available or selected tracks change.
@@ -142,13 +147,18 @@ public class TvheadendPlayer implements Player.EventListener {
     private float mSpeed = 1.0f;
     private TimerTask mRewindTimerTask;
 
+    final private PositionReference position;
+    final private TrickPlayController trickPlayController;
+
     public TvheadendPlayer(Context context, SimpleHtspConnection connection, Listener listener) {
         mContext = context;
         mConnection = connection;
         mListener = listener;
 
         mHandler = new Handler();
+        position = new PositionReference();
         mTimer = new Timer();
+        trickPlayController = new TrickPlayController(mHandler, position, mExoPlayer);
         mSharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
@@ -202,130 +212,37 @@ public class TvheadendPlayer implements Player.EventListener {
     }
 
     public void play() {
-        // Start playback when ready
+        trickPlayController.stop();
         mExoPlayer.setPlayWhenReady(true);
-        cancelRewind();
-    }
-
-    public void resume() {
-        mExoPlayer.setPlayWhenReady(true);
-        cancelRewind();
-
-        if (mDataSource != null) {
-            Log.d(TAG, "Resuming HtspDataSource");
-            mDataSource.resume();
-        } else {
-            Log.w(TAG, "Unable to resume, no HtspDataSource available");
-        }
     }
 
     public void pause() {
+        trickPlayController.stop();
         mExoPlayer.setPlayWhenReady(false);
-        cancelRewind();
-
-        if (mDataSource != null) {
-            Log.d(TAG, "Pausing HtspDataSource");
-            mDataSource.pause();
-        } else {
-            Log.w(TAG, "Unable to pause, no HtspDataSource available");
-        }
     }
 
-    public void seek(long timeMs) {
-        if (mDataSource != null) {
-            Log.d(TAG, "Seeking to time: " + timeMs);
-
-            long seekPts = (timeMs * 1000) - mDataSource.getTimeshiftStartTime();
-            seekPts = Math.max(seekPts, mDataSource.getTimeshiftStartPts()) / 1000;
-            Log.d(TAG, "Seeking to PTS: " + seekPts);
-
-            mExoPlayer.seekTo(seekPts);
-        } else {
-            Log.w(TAG, "Unable to seek, no HtspDataSource available");
-        }
+    public boolean isPaused() {
+        return !mExoPlayer.getPlayWhenReady();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
+    public void seek(long position) {
+        long p = this.position.timeUsFromPosition(Math.max(position, this.position.getStartPosition()));
+        mExoPlayer.seekTo(p / 1000);
+    }
+
+    @TargetApi(23)
     public void setPlaybackParams(PlaybackParams params) {
-        Log.d(TAG, "setPlaybackParams: Speed: " + params.getSpeed());
-
-        if (mDataSource != null) {
-            mSpeed = params.getSpeed();
-
-            if (mSpeed == 1.0f) {
-                setVolume(1.0f);
-            } else {
-                setVolume(0f);
-            }
-
-            if (mSpeed > 0) {
-                // Forward Playback
-                // Convert from TIF speed format, over to TVH and ExoPlayer formats
-                int tvhSpeed = TvhMappings.androidSpeedToTvhSpeed(mSpeed);
-                float exoSpeed = ExoPlayerUtils.androidSpeedToExoPlayerSpeed(mSpeed);
-
-                mDataSource.setSpeed(tvhSpeed);
-                mExoPlayer.setPlaybackParameters(new PlaybackParameters(exoSpeed, 1));
-            } else {
-                // Reverse Playback
-                rewind();
-            }
-        }
-    }
-
-    private void rewind() {
-        cancelRewind();
-
-        mExoPlayer.setPlayWhenReady(false);
-
-        mRewindTimerTask = new TimerTask() {
-            @Override
-            public void run() {
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        int seekSize;
-
-                        switch((int) mSpeed) {
-                            case -2: // 2x Rewind
-                                seekSize = -2000;
-                                break;
-                            case -4: // 3x Rewind
-                                seekSize = -3000;
-                                break;
-                            case -12: // 4x Rewind
-                                seekSize = -4000;
-                                break;
-                            case -48: // 5x Rewind
-                                seekSize = -5000;
-                                break;
-
-                            default:
-                                throw new IllegalArgumentException("Unknown speed: " + mSpeed);
-                        }
-
-                        seek(Math.max(getTimeshiftCurrentPosition() - seekSize, getTimeshiftStartPosition()));
-                    }
-                });
-            }
-        };
-
-        mTimer.scheduleAtFixedRate(mRewindTimerTask, 0, 1000);
-    }
-
-    private void cancelRewind() {
-        if (mRewindTimerTask != null) {
-            mRewindTimerTask.cancel();
-        }
-
-        mExoPlayer.setPlayWhenReady(true);
+        Log.d(TAG, "speed: " + params.getSpeed());
+        trickPlayController.start(params.getSpeed());
     }
 
     private void stop() {
+        trickPlayController.reset();
         mExoPlayer.stop();
         mTrackSelector.clearSelectionOverrides();
         mHtspSubscriptionDataSourceFactory.releaseCurrentDataSource();
         mHtspFileInputStreamDataSourceFactory.releaseCurrentDataSource();
+        position.reset();
 
         if (mMediaSource != null) {
             mMediaSource.releaseSource();
@@ -641,6 +558,14 @@ public class TvheadendPlayer implements Player.EventListener {
     }
 
     @Override
+    public void onVideoEnabled(DecoderCounters counters) {
+    }
+
+    @Override
+    public void onVideoDecoderInitialized(String decoderName, long initializedTimestampMs, long initializationDurationMs) {
+    }
+
+    @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
         mListener.onPlayerStateChanged(playWhenReady, playbackState);
     }
@@ -651,8 +576,35 @@ public class TvheadendPlayer implements Player.EventListener {
     }
 
     @Override
+    public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
+    }
+
+    @Override
+    public void onRenderedFirstFrame(Surface surface) {
+        if(trickPlayController.activated()) {
+            trickPlayController.postTick();
+            return;
+        }
+
+        mListener.onRenderedFirstFrame();
+    }
+
+    @Override
+    public void onVideoInputFormatChanged(Format format) {
+
+    }
+
+    @Override
+    public void onVideoDisabled(DecoderCounters counters) {
+    }
+
+    @Override
     public void onPositionDiscontinuity() {
         // Don't care about this event here
+    }
+
+    @Override
+    public void onDroppedFrames(int count, long elapsedMs) {
     }
 
     @Override

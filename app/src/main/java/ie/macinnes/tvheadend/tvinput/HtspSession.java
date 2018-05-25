@@ -160,6 +160,11 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
     }
 
     @Override
+    public void onRenderedFirstFrame() {
+        notifyVideoAvailable();
+    }
+
+    @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
         Log.d(TAG, "Session onPlayerStateChanged: " + playbackState + " (" + mSessionNumber + ")");
 
@@ -189,14 +194,7 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
 
     @Override
     public void onTimeShiftResume() {
-        Log.d(TAG, "onTimeShiftResume");
-        mTvheadendPlayer.resume();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PlaybackParams normalParams = new PlaybackParams();
-            normalParams.setSpeed(1);
-            onTimeShiftSetPlaybackParams(normalParams);
-        }
+        mTvheadendPlayer.play();
     }
 
     @Override
