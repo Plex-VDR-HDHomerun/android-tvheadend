@@ -453,6 +453,14 @@ public class TvheadendPlayer implements Player.EventListener, VideoRendererEvent
     }
 
     @Override
+    public void onAudioTrackChanged(Format format) {
+        if(format == null) {
+            return;
+        }
+        mListener.onAudioTrackChanged(format);
+    }
+
+    @Override
     public void onTracksChanged(TrackGroupArray trackGroupArray, TrackSelectionArray trackSelectionArray) {
         if(mListener == null) {
             return;
@@ -580,14 +588,6 @@ public class TvheadendPlayer implements Player.EventListener, VideoRendererEvent
     @Override
     public void onSeekProcessed() {
 
-    }
-
-    @Override
-    public void onAudioTrackChanged(Format format) {
-        if(format == null) {
-            return;
-        }
-        mListener.onAudioTrackChanged(format);
     }
 
     @Override
