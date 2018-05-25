@@ -99,11 +99,6 @@ import java.util.Locale;
   }
 
   @Override
-  public void onPositionDiscontinuity() {
-    Log.d(TAG, "positionDiscontinuity");
-  }
-
-  @Override
   public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
     Log.d(TAG, "playbackParameters " + String.format(
             "[speed=%.2f, pitch=%.2f]", playbackParameters.speed, playbackParameters.pitch));
@@ -247,12 +242,6 @@ import java.util.Locale;
   @Override
   public void onAudioDisabled(DecoderCounters counters) {
     Log.d(TAG, "audioDisabled [" + getSessionTimeString() + "]");
-  }
-
-  @Override
-  public void onAudioTrackUnderrun(int bufferSize, long bufferSizeMs, long elapsedSinceLastFeedMs) {
-    printInternalError("audioTrackUnderrun [" + bufferSize + ", " + bufferSizeMs + ", "
-        + elapsedSinceLastFeedMs + "]", null);
   }
 
   // VideoRendererEventListener
@@ -499,6 +488,24 @@ import java.util.Locale;
     return getTrackStatusString(selection != null && selection.getTrackGroup() == group
         && selection.indexOf(trackIndex) != C.INDEX_UNSET);
   }
+
+  @Override
+  public void onAudioSinkUnderrun(int bufferSize, long bufferSizeMs, long elapsedSinceLastFeedMs) {
+
+  }
+
+    @Override
+    public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
+    }
+
+    @Override
+    public void onSeekProcessed() {
+
+    }
+
+    @Override
+    public void onPositionDiscontinuity(int reason) {
+    }
 
   private static String getTrackStatusString(boolean enabled) {
     return enabled ? "[X]" : "[ ]";

@@ -16,9 +16,12 @@
 
 package ie.macinnes.tvheadend.tvinput;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.media.PlaybackParams;
+import android.media.tv.TvContract;
 import android.media.tv.TvInputManager;
 import android.media.tv.TvTrackInfo;
 import android.net.Uri;
@@ -32,10 +35,12 @@ import android.view.View;
 import android.view.accessibility.CaptioningManager;
 import android.widget.Toast;
 
+import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.Player;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ie.macinnes.htsp.SimpleHtspConnection;
@@ -43,6 +48,8 @@ import ie.macinnes.tvheadend.Constants;
 import ie.macinnes.tvheadend.R;
 import ie.macinnes.tvheadend.TvContractUtils;
 import ie.macinnes.tvheadend.player.TvheadendPlayer;
+import ie.macinnes.tvheadend.player.StreamBundle;
+
 
 // TODO: Rename?
 public class HtspSession extends TvInputService.Session implements TvheadendPlayer.Listener {
@@ -58,11 +65,14 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
     private final TvheadendPlayer mTvheadendPlayer;
 
     private Runnable mPlayChannelRunnable;
+    private ContentResolver mContentResolver;
+
 
     public HtspSession(Context context, SimpleHtspConnection connection) {
         super(context);
 
         mContext = context;
+        mContentResolver =  mContext.getContentResolver();
         mSessionNumber = sSessionCounter.getAndIncrement();
         mHandler = new Handler();
         mCaptioningManager = (CaptioningManager) context.getSystemService(Context.CAPTIONING_SERVICE);
@@ -144,19 +154,32 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
         return mTvheadendPlayer.selectTrack(type, trackId);
     }
 
-    // TvheadendPlayer.Listener Methods
     @Override
-    public void onTracksChanged(List<TvTrackInfo> tracks, SparseArray<String> selectedTracks) {
-        Log.d(TAG, "Session : " + tracks.size() + " (" + mSessionNumber + ")");
+    public void onTracksChanged(StreamBundle bundle) {
+        final List<TvTrackInfo> tracks = new ArrayList<>(16);
+
+        // create video track (limit surface size to display size)
+        TvTrackInfo info = TrackInfoMapper.findTrackInfo(
+                bundle,
+                StreamBundle.CONTENT_VIDEO,
+                0);
+
+        if(info != null) {
+            tracks.add(info);
+        }
+
+        // create audio tracks
+        int audioTrackCount = bundle.getStreamCount(StreamBundle.CONTENT_AUDIO);
+
+        for(int i = 0; i < audioTrackCount; i++) {
+            info = TrackInfoMapper.findTrackInfo(bundle, StreamBundle.CONTENT_AUDIO, i);
+
+            if(info != null) {
+                tracks.add(info);
+            }
+        }
 
         notifyTracksChanged(tracks);
-
-        for (int i = 0; i < selectedTracks.size(); i++) {
-            final int selectedTrackType = selectedTracks.keyAt(i);
-            final String selectedTrackId = selectedTracks.get(selectedTrackType);
-
-            notifyTrackSelected(selectedTrackType, selectedTrackId);
-        }
     }
 
     @Override
@@ -182,8 +205,9 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
     }
 
     @Override
-    public void onPlayerError(ExoPlaybackException error) {
-        // Don't care about this event here
+    public void onPlayerError(Exception e) {
+        Log.e(TAG, "onPlayerError");
+        e.printStackTrace();
     }
 
     @Override
@@ -281,6 +305,42 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
             }
 
             return true;
+        }
+
+        @Override
+        public void onAudioTrackChanged(Format format) {
+            Log.d(TAG, "onAudioTrackChanged: " + format.id);
+            notifyTrackSelected(TvTrackInfo.TYPE_AUDIO, format.id);
+        }
+
+        @Override
+        public void onVideoTrackChanged(Format format) {
+            ContentValues values = new ContentValues();
+
+            int height = format.height;
+
+            if(height == 720) {
+                values.put(TvContract.Channels.COLUMN_VIDEO_FORMAT, TvContract.Channels.VIDEO_FORMAT_720P);
+            }
+
+            if(height > 720 && height <= 1080) {
+                values.put(TvContract.Channels.COLUMN_VIDEO_FORMAT, TvContract.Channels.VIDEO_FORMAT_1080I);
+            }
+            else if(height == 2160) {
+                values.put(TvContract.Channels.COLUMN_VIDEO_FORMAT, TvContract.Channels.VIDEO_FORMAT_2160P);
+            }
+            else if(height == 4320) {
+                values.put(TvContract.Channels.COLUMN_VIDEO_FORMAT, TvContract.Channels.VIDEO_FORMAT_4320P);
+            }
+            else {
+                values.put(TvContract.Channels.COLUMN_VIDEO_FORMAT, TvContract.Channels.VIDEO_FORMAT_576I);
+            }
+
+            if(mContentResolver.update(mCurrentChannelUri, values, null, null) != 1) {
+                Log.e(TAG, "unable to update channel properties");
+            }
+
+            notifyTrackSelected(TvTrackInfo.TYPE_VIDEO, format.id);
         }
 
         @Override

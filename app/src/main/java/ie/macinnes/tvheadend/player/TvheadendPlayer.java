@@ -40,6 +40,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.audio.AudioCapabilities;
+import com.google.android.exoplayer2.audio.AudioRendererEventListener;
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
@@ -83,12 +85,16 @@ import ie.macinnes.tvheadend.TvContractUtils;
 import ie.macinnes.tvheadend.player.utils.TrickPlayController;
 import ie.macinnes.tvheadend.player.source.PositionReference;
 
-public class TvheadendPlayer implements Player.EventListener, VideoRendererEventListener {
+public class TvheadendPlayer implements Player.EventListener, VideoRendererEventListener, AudioRendererEventListener {
     private static final String TAG = TvheadendPlayer.class.getName();
 
     private static final float CAPTION_LINE_HEIGHT_RATIO = 0.0533f;
     private static final int TEXT_UNIT_PIXELS = 0;
     private static final long INVALID_TIMESHIFT_TIME = HtspDataSource.INVALID_TIMESHIFT_TIME;
+    private static final int DEFAULT_MIN_BUFFER_MS = 3000;
+    private static final int DEFAULT_MAX_BUFFER_MS = 5000;
+    private static final int DEFAULT_BUFFER_FOR_PLAYBACK_MS = 1000;
+    private static final int DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = 2000;
 
     public interface Listener {
         /**
@@ -100,21 +106,15 @@ public class TvheadendPlayer implements Player.EventListener, VideoRendererEvent
          */
         void onPlayerStateChanged(boolean playWhenReady, int playbackState);
 
-        /**
-         * Called when an error occurs.
-         *
-         * @param error The error.
-         */
-        void onPlayerError(ExoPlaybackException error);
+        void onPlayerError(Exception e);
+
+        void onAudioTrackChanged(Format format);
+
+        void onVideoTrackChanged(Format format);
 
         void onRenderedFirstFrame();
 
-        /**
-         * Called when the available or selected tracks change.
-         *
-         * @param tracks a list of tracks
-         */
-        void onTracksChanged(List<TvTrackInfo> tracks, SparseArray<String> selectedTracks);
+        void onTracksChanged(StreamBundle bundle);
     }
 
     private final Context mContext;
@@ -405,10 +405,12 @@ public class TvheadendPlayer implements Player.EventListener, VideoRendererEvent
 
         return new DefaultLoadControl(
                 new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE),
-                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
+                DEFAULT_MIN_BUFFER_MS,
+                DEFAULT_MAX_BUFFER_MS,
                 bufferForPlaybackMs,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+                DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
+                C.LENGTH_UNSET,
+                false
         );
     }
 
@@ -451,67 +453,36 @@ public class TvheadendPlayer implements Player.EventListener, VideoRendererEvent
     }
 
     @Override
-    public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
-        MappingTrackSelector.MappedTrackInfo mappedTrackInfo = mTrackSelector.getCurrentMappedTrackInfo();
-        if (mappedTrackInfo == null) {
+    public void onTracksChanged(TrackGroupArray trackGroupArray, TrackSelectionArray trackSelectionArray) {
+        if(mListener == null) {
             return;
         }
 
-        // Process Tracks
-        List<TvTrackInfo> tracks = new ArrayList<>();
-        SparseArray<String> selectedTracks = new SparseArray<>();
+        for(int i = 0; i < trackSelectionArray.length; i++) {
+            TrackSelection selection = trackSelectionArray.get(i);
 
-        // Keep track of weather we have a video track available
-        boolean hasVideoTrack = false;
+            // skip disabled renderers
+            if(selection == null) {
+                continue;
+            }
 
-        for (int rendererIndex = 0; rendererIndex < mappedTrackInfo.length; rendererIndex++) {
-            TrackGroupArray rendererTrackGroups = mappedTrackInfo.getTrackGroups(rendererIndex);
-            TrackSelection trackSelection = trackSelections.get(rendererIndex);
-            if (rendererTrackGroups.length > 0) {
-                for (int groupIndex = 0; groupIndex < rendererTrackGroups.length; groupIndex++) {
-                    TrackGroup trackGroup = rendererTrackGroups.get(groupIndex);
-                    for (int trackIndex = 0; trackIndex < trackGroup.length; trackIndex++) {
-                        int formatSupport = mappedTrackInfo.getTrackFormatSupport(rendererIndex, groupIndex, trackIndex);
+            Format format = selection.getSelectedFormat();
 
-                        if (formatSupport == RendererCapabilities.FORMAT_HANDLED) {
-                            Format format = trackGroup.getFormat(trackIndex);
-                            TvTrackInfo tvTrackInfo = ExoPlayerUtils.buildTvTrackInfo(format);
+            // selected audio track
+            if(MimeTypes.isAudio(format.sampleMimeType)) {
+                mListener.onAudioTrackChanged(format);
+            }
 
-                            if (tvTrackInfo != null) {
-                                tracks.add(tvTrackInfo);
-
-                                Boolean selected = getTrackStatusBoolean(trackSelection, trackGroup, trackIndex);
-
-                                if (selected) {
-                                    int trackType = MimeTypes.getTrackType(format.sampleMimeType);
-
-                                    switch (trackType) {
-                                        case C.TRACK_TYPE_VIDEO:
-                                            hasVideoTrack = true;
-                                            selectedTracks.put(TvTrackInfo.TYPE_VIDEO, format.id);
-                                            break;
-                                        case C.TRACK_TYPE_AUDIO:
-                                            selectedTracks.put(TvTrackInfo.TYPE_AUDIO, format.id);
-                                            break;
-                                        case C.TRACK_TYPE_TEXT:
-                                            selectedTracks.put(TvTrackInfo.TYPE_SUBTITLE, format.id);
-                                            break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            // selected video track
+            if(MimeTypes.isVideo(format.sampleMimeType)) {
+                mListener.onVideoTrackChanged(format);
             }
         }
+    }
 
-        if (hasVideoTrack) {
-            disableRadioInfoScreen();
-        } else {
-            enableRadioInfoScreen();
-        }
-
-        mListener.onTracksChanged(tracks, selectedTracks);
+    @Override
+    public void onTracksChanged(StreamBundle bundle) {
+        mListener.onTracksChanged(bundle);
     }
 
     private void enableRadioInfoScreen() {
@@ -599,12 +570,54 @@ public class TvheadendPlayer implements Player.EventListener, VideoRendererEvent
     }
 
     @Override
-    public void onPositionDiscontinuity() {
-        // Don't care about this event here
+    public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
+    }
+
+    @Override
+    public void onPositionDiscontinuity(int reason) {
+    }
+
+    @Override
+    public void onSeekProcessed() {
+
+    }
+
+    @Override
+    public void onAudioTrackChanged(Format format) {
+        if(format == null) {
+            return;
+        }
+        mListener.onAudioTrackChanged(format);
+    }
+
+    @Override
+    public void onAudioInputFormatChanged(Format format) {
+        //listener.onAudioTrackChanged(format);
+    }
+
+    @Override
+    public void onAudioSinkUnderrun(int bufferSize, long bufferSizeMs, long elapsedSinceLastFeedMs) {
+
+    }
+
+    @Override
+    public void onAudioDecoderInitialized(String decoderName, long initializedTimestampMs, long initializationDurationMs) {
+    }
+
+    @Override
+    public void onAudioEnabled(DecoderCounters counters) {
+    }
+
+    @Override
+    public void onAudioDisabled(DecoderCounters counters) {
     }
 
     @Override
     public void onDroppedFrames(int count, long elapsedMs) {
+    }
+
+    @Override
+    public void onAudioSessionId(int audioSessionId) {
     }
 
     @Override
