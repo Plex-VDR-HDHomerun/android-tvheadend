@@ -23,7 +23,7 @@ import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.media.PlaybackParams;
 import android.media.tv.TvContract;
-import android.media.tv.TvTrackInfo;
+import android.media.AudioFormat;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -54,6 +54,8 @@ import com.google.android.exoplayer2.RendererCapabilities;
 import com.google.android.exoplayer2.RenderersFactory;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
+import com.google.android.exoplayer2.audio.AudioCapabilities;
+import com.google.android.exoplayer2.audio.AudioRendererEventListener;
 import com.google.android.exoplayer2.extractor.ExtractorsFactory;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.video.VideoRendererEventListener;
@@ -63,7 +65,8 @@ import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.text.CaptionStyleCompat;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
-import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
+import com.google.android.exoplayer2.source.TrackGroupArray;
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.ui.DebugTextViewHelper;
@@ -85,8 +88,9 @@ import ie.macinnes.tvheadend.TvContractUtils;
 import ie.macinnes.tvheadend.player.utils.TrickPlayController;
 import ie.macinnes.tvheadend.player.source.PositionReference;
 
-public class TvheadendPlayer implements Player.EventListener, VideoRendererEventListener, AudioRendererEventListener {
-    private static final String TAG = TvheadendPlayer.class.getName();
+public class TvheadendPlayer implements com.google.android.exoplayer2.Player.EventListener, VideoRendererEventListener, AudioRendererEventListener {
+
+    private static final String TAG = "TvheadendPlayer";
 
     private static final float CAPTION_LINE_HEIGHT_RATIO = 0.0533f;
     private static final int TEXT_UNIT_PIXELS = 0;
@@ -108,13 +112,13 @@ public class TvheadendPlayer implements Player.EventListener, VideoRendererEvent
 
         void onPlayerError(Exception e);
 
+        void onTracksChanged(StreamBundle bundle);
+
         void onAudioTrackChanged(Format format);
 
         void onVideoTrackChanged(Format format);
 
         void onRenderedFirstFrame();
-
-        void onTracksChanged(StreamBundle bundle);
     }
 
     private final Context mContext;
@@ -144,9 +148,6 @@ public class TvheadendPlayer implements Player.EventListener, VideoRendererEvent
 
     private Uri mCurrentChannelUri;
 
-    private float mSpeed = 1.0f;
-    private TimerTask mRewindTimerTask;
-
     final private PositionReference position;
     final private TrickPlayController trickPlayController;
 
@@ -155,9 +156,12 @@ public class TvheadendPlayer implements Player.EventListener, VideoRendererEvent
         mConnection = connection;
         mListener = listener;
 
+        AudioCapabilities audioCapabilities = AudioCapabilities.getCapabilities(context);
+
         mHandler = new Handler();
         position = new PositionReference();
         mTimer = new Timer();
+        boolean passthrough = audioCapabilities.supportsEncoding(AudioFormat.ENCODING_AC3);
         trickPlayController = new TrickPlayController(mHandler, position, mExoPlayer);
         mSharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
@@ -488,11 +492,6 @@ public class TvheadendPlayer implements Player.EventListener, VideoRendererEvent
         }
     }
 
-    @Override
-    public void onTracksChanged(StreamBundle bundle) {
-        mListener.onTracksChanged(bundle);
-    }
-
     private void enableRadioInfoScreen() {
         // No video track available, use the channel logo as a substitute
         Log.i(TAG, "No video track available");
@@ -583,6 +582,11 @@ public class TvheadendPlayer implements Player.EventListener, VideoRendererEvent
 
     @Override
     public void onPositionDiscontinuity(int reason) {
+    }
+
+    @Override
+    public void onTracksChanged(StreamBundle bundle) {
+        mListener.onTracksChanged(bundle);
     }
 
     @Override
