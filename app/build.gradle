@@ -47,13 +47,13 @@ dependencies {
     // Used for testing local HTSP lib builds
 //    compile(name: 'library-debug', ext: 'aar')
 
-    compile 'com.android.support:support-v4:26.0.1'
-    compile 'com.android.support:leanback-v17:26.0.1'
-    compile 'com.android.support:preference-leanback-v17:26.0.1'
+    compile 'com.android.support:support-v4:27.0.1'
+    compile 'com.android.support:leanback-v17:27.0.1'
+    compile 'com.android.support:preference-leanback-v17:27.0.1'
 
-    compile 'com.google.android.exoplayer:exoplayer-core:r2.5.1k1'
-    compile 'com.google.android.exoplayer:exoplayer-ui:r2.5.1k1'
-    compile 'com.google.android.exoplayer:extension-ffmpeg:r2.5.1k1'
+    compile 'com.google.android.exoplayer:exoplayer-core:2.6.1'
+    compile 'com.google.android.exoplayer:exoplayer-ui:2.6.1'
+    compile project(path: ':extension-ffmpeg')
     // Used for testing local exoplayer builds
 //    compile(name: 'library-core-release', ext: 'aar')
 //    compile(name: 'library-ui-release', ext: 'aar')

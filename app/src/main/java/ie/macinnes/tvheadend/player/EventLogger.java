@@ -58,9 +58,9 @@ import java.util.Locale;
  * Logs player events using {@link Log}.
  */
 /* package */ final class EventLogger implements Player.EventListener,
-    AudioRendererEventListener, VideoRendererEventListener, AdaptiveMediaSourceEventListener,
-    ExtractorMediaSource.EventListener, DefaultDrmSessionManager.EventListener,
-    MetadataRenderer.Output {
+        AudioRendererEventListener, VideoRendererEventListener, AdaptiveMediaSourceEventListener,
+        ExtractorMediaSource.EventListener, DefaultDrmSessionManager.EventListener,
+        MetadataRenderer.Output {
 
   private static final String TAG = EventLogger.class.getName();
   private static final int MAX_TIMELINE_ITEM_LINES = 3;
@@ -95,18 +95,28 @@ import java.util.Locale;
   @Override
   public void onPlayerStateChanged(boolean playWhenReady, int state) {
     Log.d(TAG, "state [" + getSessionTimeString() + ", " + playWhenReady + ", "
-        + getStateString(state) + "]");
-  }
-
-  @Override
-  public void onPositionDiscontinuity() {
-    Log.d(TAG, "positionDiscontinuity");
+            + getStateString(state) + "]");
   }
 
   @Override
   public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
     Log.d(TAG, "playbackParameters " + String.format(
             "[speed=%.2f, pitch=%.2f]", playbackParameters.speed, playbackParameters.pitch));
+  }
+
+  @Override
+  public void onSeekProcessed() {
+
+  }
+
+  @Override
+  public void onPlayerError(ExoPlaybackException e) {
+    Log.e(TAG, "playerFailed [" + getSessionTimeString() + "]", e);
+  }
+
+  @Override
+  public void onPositionDiscontinuity(int reason) {
+    Log.d(TAG, "positionDiscontinuity");
   }
 
   @Override
@@ -127,17 +137,12 @@ import java.util.Locale;
     for (int i = 0; i < Math.min(windowCount, MAX_TIMELINE_ITEM_LINES); i++) {
       timeline.getWindow(i, window);
       Log.d(TAG, "  " +  "window [" + getTimeString(window.getDurationMs()) + ", "
-          + window.isSeekable + ", " + window.isDynamic + "]");
+              + window.isSeekable + ", " + window.isDynamic + "]");
     }
     if (windowCount > MAX_TIMELINE_ITEM_LINES) {
       Log.d(TAG, "  ...");
     }
     Log.d(TAG, "]");
-  }
-
-  @Override
-  public void onPlayerError(ExoPlaybackException e) {
-    Log.e(TAG, "playerFailed [" + getSessionTimeString() + "]", e);
   }
 
   @Override
@@ -157,15 +162,15 @@ import java.util.Locale;
         for (int groupIndex = 0; groupIndex < rendererTrackGroups.length; groupIndex++) {
           TrackGroup trackGroup = rendererTrackGroups.get(groupIndex);
           String adaptiveSupport = getAdaptiveSupportString(trackGroup.length,
-              mappedTrackInfo.getAdaptiveSupport(rendererIndex, groupIndex, false));
+                  mappedTrackInfo.getAdaptiveSupport(rendererIndex, groupIndex, false));
           Log.d(TAG, "    Group:" + groupIndex + ", adaptive_supported=" + adaptiveSupport + " [");
           for (int trackIndex = 0; trackIndex < trackGroup.length; trackIndex++) {
             String status = getTrackStatusString(trackSelection, trackGroup, trackIndex);
             String formatSupport = getFormatSupportString(
-                mappedTrackInfo.getTrackFormatSupport(rendererIndex, groupIndex, trackIndex));
+                    mappedTrackInfo.getTrackFormatSupport(rendererIndex, groupIndex, trackIndex));
             Log.d(TAG, "      " + status + " Track:" + trackIndex + ", "
-                + getFormatString(trackGroup.getFormat(trackIndex))
-                + ", supported=" + formatSupport);
+                    + getFormatString(trackGroup.getFormat(trackIndex))
+                    + ", supported=" + formatSupport);
           }
           Log.d(TAG, "    ]");
         }
@@ -194,10 +199,10 @@ import java.util.Locale;
         for (int trackIndex = 0; trackIndex < trackGroup.length; trackIndex++) {
           String status = getTrackStatusString(false);
           String formatSupport = getFormatSupportString(
-              RendererCapabilities.FORMAT_UNSUPPORTED_TYPE);
+                  RendererCapabilities.FORMAT_UNSUPPORTED_TYPE);
           Log.d(TAG, "      " + status + " Track:" + trackIndex + ", "
-              + getFormatString(trackGroup.getFormat(trackIndex))
-              + ", supported=" + formatSupport);
+                  + getFormatString(trackGroup.getFormat(trackIndex))
+                  + ", supported=" + formatSupport);
         }
         Log.d(TAG, "    ]");
       }
@@ -209,6 +214,11 @@ import java.util.Locale;
   @Override
   public void onRepeatModeChanged(int i) {
     Log.d(TAG, "repeatModeChanged [" + getSessionTimeString() + "]");
+  }
+
+  @Override
+  public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
+
   }
 
   // MetadataRenderer.Output
@@ -234,14 +244,19 @@ import java.util.Locale;
 
   @Override
   public void onAudioDecoderInitialized(String decoderName, long elapsedRealtimeMs,
-      long initializationDurationMs) {
+                                        long initializationDurationMs) {
     Log.d(TAG, "audioDecoderInitialized [" + getSessionTimeString() + ", " + decoderName + "]");
   }
 
   @Override
   public void onAudioInputFormatChanged(Format format) {
     Log.d(TAG, "audioFormatChanged [" + getSessionTimeString() + ", " + getFormatString(format)
-        + "]");
+            + "]");
+  }
+
+  @Override
+  public void onAudioSinkUnderrun(int bufferSize, long bufferSizeMs, long elapsedSinceLastFeedMs) {
+
   }
 
   @Override
@@ -249,11 +264,6 @@ import java.util.Locale;
     Log.d(TAG, "audioDisabled [" + getSessionTimeString() + "]");
   }
 
-  @Override
-  public void onAudioTrackUnderrun(int bufferSize, long bufferSizeMs, long elapsedSinceLastFeedMs) {
-    printInternalError("audioTrackUnderrun [" + bufferSize + ", " + bufferSizeMs + ", "
-        + elapsedSinceLastFeedMs + "]", null);
-  }
 
   // VideoRendererEventListener
 
@@ -264,14 +274,14 @@ import java.util.Locale;
 
   @Override
   public void onVideoDecoderInitialized(String decoderName, long elapsedRealtimeMs,
-      long initializationDurationMs) {
+                                        long initializationDurationMs) {
     Log.d(TAG, "videoDecoderInitialized [" + getSessionTimeString() + ", " + decoderName + "]");
   }
 
   @Override
   public void onVideoInputFormatChanged(Format format) {
     Log.d(TAG, "videoFormatChanged [" + getSessionTimeString() + ", " + getFormatString(format)
-        + "]");
+            + "]");
   }
 
   @Override
@@ -286,9 +296,9 @@ import java.util.Locale;
 
   @Override
   public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees,
-      float pixelWidthHeightRatio) {
+                                 float pixelWidthHeightRatio) {
     Log.d(TAG, "videoSizeChanged [" + getSessionTimeString() + ", " + width + ", " + height + ", "
-               + unappliedRotationDegrees + ", " + pixelWidthHeightRatio + "]");
+            + unappliedRotationDegrees + ", " + pixelWidthHeightRatio + "]");
   }
 
   @Override
@@ -329,30 +339,30 @@ import java.util.Locale;
 
   @Override
   public void onLoadStarted(DataSpec dataSpec, int dataType, int trackType, Format trackFormat,
-      int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs,
-      long mediaEndTimeMs, long elapsedRealtimeMs) {
+                            int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs,
+                            long mediaEndTimeMs, long elapsedRealtimeMs) {
     // Do nothing.
   }
 
   @Override
   public void onLoadError(DataSpec dataSpec, int dataType, int trackType, Format trackFormat,
-      int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs,
-      long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded,
-      IOException error, boolean wasCanceled) {
+                          int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs,
+                          long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded,
+                          IOException error, boolean wasCanceled) {
     printInternalError("loadError", error);
   }
 
   @Override
   public void onLoadCanceled(DataSpec dataSpec, int dataType, int trackType, Format trackFormat,
-      int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs,
-      long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded) {
+                             int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs,
+                             long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded) {
     // Do nothing.
   }
 
   @Override
   public void onLoadCompleted(DataSpec dataSpec, int dataType, int trackType, Format trackFormat,
-      int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs,
-      long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded) {
+                              int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs,
+                              long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded) {
     // Do nothing.
   }
 
@@ -363,7 +373,7 @@ import java.util.Locale;
 
   @Override
   public void onDownstreamFormatChanged(int trackType, Format trackFormat, int trackSelectionReason,
-      Object trackSelectionData, long mediaTimeMs) {
+                                        Object trackSelectionData, long mediaTimeMs) {
     // Do nothing.
   }
 
@@ -469,7 +479,7 @@ import java.util.Locale;
     }
     StringBuilder builder = new StringBuilder();
     builder.append("id=").append(format.id).append(", mimeType=").append(format.sampleMimeType)
-           .append(", containerMimeType=").append(format.containerMimeType);
+            .append(", containerMimeType=").append(format.containerMimeType);
     if (format.bitrate != Format.NO_VALUE) {
       builder.append(", bitrate=").append(format.bitrate);
     }
@@ -495,9 +505,9 @@ import java.util.Locale;
   }
 
   private static String getTrackStatusString(TrackSelection selection, TrackGroup group,
-      int trackIndex) {
+                                             int trackIndex) {
     return getTrackStatusString(selection != null && selection.getTrackGroup() == group
-        && selection.indexOf(trackIndex) != C.INDEX_UNSET);
+            && selection.indexOf(trackIndex) != C.INDEX_UNSET);
   }
 
   private static String getTrackStatusString(boolean enabled) {

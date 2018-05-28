@@ -25,6 +25,7 @@ import android.media.tv.TvContract;
 import android.media.tv.TvTrackInfo;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.util.SparseArray;
@@ -112,6 +113,7 @@ public class TvheadendPlayer implements Player.EventListener {
     private final SimpleHtspConnection mConnection;
     private final Listener mListener;
 
+    private final Handler mHandler;
     private final SharedPreferences mSharedPreferences;
 
     private SimpleExoPlayer mExoPlayer;
@@ -138,6 +140,7 @@ public class TvheadendPlayer implements Player.EventListener {
         mConnection = connection;
         mListener = listener;
 
+        mHandler = new Handler();
         mSharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
@@ -235,35 +238,34 @@ public class TvheadendPlayer implements Player.EventListener {
     public void setPlaybackParams(PlaybackParams params) {
         float rawSpeed = params.getSpeed();
         int speed = (int) rawSpeed;
-
         int translatedSpeed;
 
         switch(speed) {
-            case 1:
+            case 0:
                 translatedSpeed = 100;
                 break;
             case -2:
                 translatedSpeed = -200;
                 break;
-            case -3:
+            case -4:
                 translatedSpeed = -300;
                 break;
-            case -4:
+            case -12:
                 translatedSpeed = -400;
                 break;
-            case -5:
+            case -48:
                 translatedSpeed = -500;
                 break;
             case 2:
                 translatedSpeed = 200;
                 break;
-            case 8:
+            case 4:
                 translatedSpeed = 300;
                 break;
-            case 32:
+            case 12:
                 translatedSpeed = 400;
                 break;
-            case 128:
+            case 48:
                 translatedSpeed = 500;
                 break;
             default:
@@ -272,9 +274,10 @@ public class TvheadendPlayer implements Player.EventListener {
         }
 
         Log.d(TAG, "Speed: " + params.getSpeed() + " / " + translatedSpeed);
+
         if (mDataSource != null) {
             mDataSource.setSpeed(translatedSpeed);
-            mExoPlayer.setPlaybackParameters(new PlaybackParameters(speed, 1));
+            mExoPlayer.setPlaybackParameters(new PlaybackParameters(translatedSpeed, 0));
         }
     }
 
@@ -341,7 +344,7 @@ public class TvheadendPlayer implements Player.EventListener {
             mSubtitleView = getSubtitleView(captionStyle, fontScale);
 
             if (mSubtitleView != null) {
-                mExoPlayer.setTextOutput(mSubtitleView);
+                mExoPlayer.addTextOutput(mSubtitleView);
             }
         }
 
@@ -401,8 +404,8 @@ public class TvheadendPlayer implements Player.EventListener {
         // Add the EventLogger
         mEventLogger = new EventLogger(mTrackSelector);
         mExoPlayer.addListener(mEventLogger);
-        mExoPlayer.setAudioDebugListener(mEventLogger);
-        mExoPlayer.setVideoDebugListener(mEventLogger);
+        mExoPlayer.addAudioDebugListener(mEventLogger);
+        mExoPlayer.addVideoDebugListener(mEventLogger);
 
         final String streamProfile = mSharedPreferences.getString(
                 Constants.KEY_HTSP_STREAM_PROFILE,
@@ -424,8 +427,8 @@ public class TvheadendPlayer implements Player.EventListener {
         TvheadendTrackSelector trackSelector = new TvheadendTrackSelector(trackSelectionFactory);
 
         final boolean enableAudioTunneling = mSharedPreferences.getBoolean(
-            Constants.KEY_AUDIO_TUNNELING_ENABLED,
-            mContext.getResources().getBoolean(R.bool.pref_default_audio_tunneling_enabled)
+                Constants.KEY_AUDIO_TUNNELING_ENABLED,
+                mContext.getResources().getBoolean(R.bool.pref_default_audio_tunneling_enabled)
         );
 
         if (enableAudioTunneling) {
@@ -448,20 +451,24 @@ public class TvheadendPlayer implements Player.EventListener {
                 DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
                 DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
                 bufferForPlaybackMs,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
+                C.DEFAULT_BUFFER_SEGMENT_SIZE,
+                true
         );
     }
 
     private void buildHtspChannelMediaSource(Uri channelUri) {
         // This is the MediaSource representing the media to be played.
-        mMediaSource = new ExtractorMediaSource(channelUri,
-                mHtspSubscriptionDataSourceFactory, mExtractorsFactory, null, mEventLogger);
+        mMediaSource = new ExtractorMediaSource.Factory(mHtspSubscriptionDataSourceFactory)
+                .setExtractorsFactory(mExtractorsFactory)
+                .createMediaSource(channelUri, mHandler, mEventLogger);
     }
 
     private void buildHtspRecordingMediaSource(Uri recordingUri) {
         // This is the MediaSource representing the media to be played.
-        mMediaSource = new ExtractorMediaSource(recordingUri,
-                mHtspFileInputStreamDataSourceFactory, mExtractorsFactory, null, mEventLogger);
+        mMediaSource = new ExtractorMediaSource.Factory(mHtspFileInputStreamDataSourceFactory)
+                .setExtractorsFactory(mExtractorsFactory)
+                .createMediaSource(recordingUri, mHandler, mEventLogger);
     }
 
     private float getCaptionFontSize() {
@@ -479,15 +486,19 @@ public class TvheadendPlayer implements Player.EventListener {
                 && selection.indexOf(trackIndex) != C.INDEX_UNSET;
     }
 
-    // ExoPlayer.EventListener Methods
     @Override
-    public void onTimelineChanged(Timeline timeline, Object manifest) {
+    public void onRepeatModeChanged(int i) {
         // Don't care about this event here
     }
 
     @Override
-    public void onRepeatModeChanged(int i) {
+    public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
         // Don't care about this event here
+
+    }
+
+    @Override
+    public void onTimelineChanged(Timeline timeline, Object manifest) {
     }
 
     @Override
@@ -608,12 +619,17 @@ public class TvheadendPlayer implements Player.EventListener {
     }
 
     @Override
-    public void onPositionDiscontinuity() {
-        // Don't care about this event here
+    public void onPositionDiscontinuity(int reason) {
+
     }
 
     @Override
     public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
         // Don't care about this event here
+    }
+
+    @Override
+    public void onSeekProcessed() {
+
     }
 }
