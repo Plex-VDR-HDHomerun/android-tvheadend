@@ -25,7 +25,7 @@ import ie.macinnes.tvheadend.player.source.PositionReference;
 public class TrickPlayController {
 
     final private PositionReference position;
-    final private ExoPlayer player;
+    final private ExoPlayer mExoPlayer;
     final private Handler handler;
 
     private long startTime = 0;
@@ -42,7 +42,7 @@ public class TrickPlayController {
 
     public TrickPlayController(Handler handler, PositionReference position, ExoPlayer player) {
         this.position = position;
-        this.player = player;
+        this.mExoPlayer = player;
         this.handler = handler;
     }
 
@@ -52,9 +52,9 @@ public class TrickPlayController {
             return;
         }
 
-        player.setPlayWhenReady(false);
+        mExoPlayer.setPlayWhenReady(false);
         startTime = System.currentTimeMillis();
-        startPosition = position.positionFromTimeUs(player.getCurrentPosition() * 1000);
+        startPosition = position.positionFromTimeUs(mExoPlayer.getCurrentPosition() * 1000);
         playbackSpeed = (int) speed;
 
         if(!started) {
@@ -72,7 +72,7 @@ public class TrickPlayController {
         seekPosition = Math.min(seekPosition, position.getEndPosition());
 
         long timeUs = position.timeUsFromPosition(seekPosition);
-        player.seekTo(timeUs / 1000);
+        mExoPlayer.seekTo(timeUs / 1000);
     }
 
     public void stop() {
@@ -83,7 +83,7 @@ public class TrickPlayController {
         tick();
         reset();
 
-        player.setPlayWhenReady(true);
+        mExoPlayer.setPlayWhenReady(true);
     }
 
     public void reset() {

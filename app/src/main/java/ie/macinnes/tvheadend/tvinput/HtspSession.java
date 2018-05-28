@@ -45,7 +45,7 @@ import ie.macinnes.tvheadend.TvContractUtils;
 import ie.macinnes.tvheadend.player.TvheadendPlayer;
 
 // TODO: Rename?
-public class HtspSession extends TvInputService.Session implements TvheadendPlayer.Listener {
+class HtspSession extends TvInputService.Session implements TvheadendPlayer.Listener {
     private static final String TAG = HtspSession.class.getName();
     private static final AtomicInteger sSessionCounter = new AtomicInteger();
 
@@ -59,7 +59,7 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
 
     private Runnable mPlayChannelRunnable;
 
-    public HtspSession(Context context, SimpleHtspConnection connection) {
+    HtspSession(Context context, SimpleHtspConnection connection) {
         super(context);
 
         mContext = context;
@@ -283,6 +283,7 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
 
             return true;
         }
+
 
         @Override
         public void run() {

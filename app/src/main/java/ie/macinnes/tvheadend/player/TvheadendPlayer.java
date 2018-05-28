@@ -76,6 +76,8 @@ import ie.macinnes.htsp.SimpleHtspConnection;
 import ie.macinnes.tvheadend.Constants;
 import ie.macinnes.tvheadend.R;
 import ie.macinnes.tvheadend.TvContractUtils;
+import ie.macinnes.tvheadend.player.source.PositionReference;
+import ie.macinnes.tvheadend.player.TrickPlayController;
 
 public class TvheadendPlayer implements Player.EventListener {
     private static final String TAG = TvheadendPlayer.class.getName();
@@ -116,6 +118,9 @@ public class TvheadendPlayer implements Player.EventListener {
     private final Handler mHandler;
     private final SharedPreferences mSharedPreferences;
 
+    final private PositionReference position;
+    final private TrickPlayController trickPlayController;
+
     private SimpleExoPlayer mExoPlayer;
     private RenderersFactory mRenderersFactory;
     private TvheadendTrackSelector mTrackSelector;
@@ -141,6 +146,8 @@ public class TvheadendPlayer implements Player.EventListener {
         mListener = listener;
 
         mHandler = new Handler();
+        position = new PositionReference();
+        trickPlayController = new TrickPlayController(mHandler, position, mExoPlayer);
         mSharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
@@ -183,6 +190,9 @@ public class TvheadendPlayer implements Player.EventListener {
 
     public void setSurface(Surface surface) {
         mExoPlayer.setVideoSurface(surface);
+        if(trickPlayController.activated()) {
+            trickPlayController.postTick();
+        }
     }
 
     public void setVolume(float volume) {
@@ -195,6 +205,7 @@ public class TvheadendPlayer implements Player.EventListener {
 
     public void play() {
         // Start playback when ready
+        trickPlayController.stop();
         mExoPlayer.setPlayWhenReady(true);
     }
 
@@ -210,6 +221,7 @@ public class TvheadendPlayer implements Player.EventListener {
     }
 
     public void pause() {
+        trickPlayController.stop();
         mExoPlayer.setPlayWhenReady(false);
 
         if (mDataSource != null) {
@@ -235,54 +247,16 @@ public class TvheadendPlayer implements Player.EventListener {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
+
     public void setPlaybackParams(PlaybackParams params) {
-        float rawSpeed = params.getSpeed();
-        int speed = (int) rawSpeed;
-        int translatedSpeed;
-
-        switch(speed) {
-            case 0:
-                translatedSpeed = 100;
-                break;
-            case -2:
-                translatedSpeed = -200;
-                break;
-            case -4:
-                translatedSpeed = -300;
-                break;
-            case -12:
-                translatedSpeed = -400;
-                break;
-            case -48:
-                translatedSpeed = -500;
-                break;
-            case 2:
-                translatedSpeed = 200;
-                break;
-            case 4:
-                translatedSpeed = 300;
-                break;
-            case 12:
-                translatedSpeed = 400;
-                break;
-            case 48:
-                translatedSpeed = 500;
-                break;
-            default:
-                Log.d(TAG, "Unknown speed??? " + rawSpeed);
-                return;
-        }
-
-        Log.d(TAG, "Speed: " + params.getSpeed() + " / " + translatedSpeed);
-
-        if (mDataSource != null) {
-            mDataSource.setSpeed(translatedSpeed);
-            mExoPlayer.setPlaybackParameters(new PlaybackParameters(translatedSpeed, 0));
-        }
+        Log.d(TAG, "speed: " + params.getSpeed());
+        trickPlayController.start(params.getSpeed());
     }
 
     private void stop() {
+        trickPlayController.reset();
         mExoPlayer.stop();
+        position.reset();
         mTrackSelector.clearSelectionOverrides();
         mHtspSubscriptionDataSourceFactory.releaseCurrentDataSource();
         mHtspFileInputStreamDataSourceFactory.releaseCurrentDataSource();
