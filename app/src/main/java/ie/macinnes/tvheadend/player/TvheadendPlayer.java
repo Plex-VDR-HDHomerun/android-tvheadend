@@ -121,7 +121,7 @@ public class TvheadendPlayer implements Player.EventListener {
     final private PositionReference position;
     final private TrickPlayController trickPlayController;
 
-    private SimpleExoPlayer mExoPlayer;
+    private SimpleExoPlayer player;
     private RenderersFactory mRenderersFactory;
     private TvheadendTrackSelector mTrackSelector;
     private LoadControl mLoadControl;
@@ -147,7 +147,7 @@ public class TvheadendPlayer implements Player.EventListener {
 
         mHandler = new Handler();
         position = new PositionReference();
-        trickPlayController = new TrickPlayController(mHandler, position, mExoPlayer);
+        trickPlayController = new TrickPlayController(mHandler, position, player);
         mSharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
@@ -168,7 +168,7 @@ public class TvheadendPlayer implements Player.EventListener {
         }
 
         // Prepare the media source
-        mExoPlayer.prepare(mMediaSource);
+        player.prepare(mMediaSource);
     }
 
     public void release() {
@@ -184,17 +184,17 @@ public class TvheadendPlayer implements Player.EventListener {
         mOverlayView = null;
 
         // Release ExoPlayer
-        mExoPlayer.removeListener(this);
-        mExoPlayer.release();
+        player.removeListener(this);
+        player.release();
     }
 
     public void setSurface(Surface surface) {
-        mExoPlayer.setVideoSurface(surface);
+        player.setVideoSurface(surface);
         trickPlayController.postTick();
     }
 
     public void setVolume(float volume) {
-        mExoPlayer.setVolume(volume);
+        player.setVolume(volume);
     }
 
     public boolean selectTrack(int type, String trackId) {
@@ -204,11 +204,11 @@ public class TvheadendPlayer implements Player.EventListener {
     public void play() {
         // Start playback when ready
         trickPlayController.stop();
-        mExoPlayer.setPlayWhenReady(true);
+        player.setPlayWhenReady(true);
     }
 
     public void resume() {
-        mExoPlayer.setPlayWhenReady(true);
+        player.setPlayWhenReady(true);
 
         if (mDataSource != null) {
             Log.d(TAG, "Resuming HtspDataSource");
@@ -220,7 +220,7 @@ public class TvheadendPlayer implements Player.EventListener {
 
     public void pause() {
         trickPlayController.stop();
-        mExoPlayer.setPlayWhenReady(false);
+        player.setPlayWhenReady(false);
 
         if (mDataSource != null) {
             Log.d(TAG, "Pausing HtspDataSource");
@@ -232,7 +232,7 @@ public class TvheadendPlayer implements Player.EventListener {
 
     public void seek(long position) {
         long p = this.position.timeUsFromPosition(Math.max(position, this.position.getStartPosition()));
-        mExoPlayer.seekTo(p / 1000);
+        player.seekTo(p / 1000);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -244,7 +244,7 @@ public class TvheadendPlayer implements Player.EventListener {
 
     private void stop() {
         trickPlayController.reset();
-        mExoPlayer.stop();
+        player.stop();
         position.reset();
         mTrackSelector.clearSelectionOverrides();
         mHtspSubscriptionDataSourceFactory.releaseCurrentDataSource();
@@ -279,7 +279,7 @@ public class TvheadendPlayer implements Player.EventListener {
                 return System.currentTimeMillis() + (offset / 1000);
             } else {
                 // For recorded content
-                mExoPlayer.getCurrentPosition();
+                player.getCurrentPosition();
             }
         } else {
             Log.w(TAG, "Unable to getTimeshiftCurrentPosition, no HtspDataSource available");
@@ -307,7 +307,7 @@ public class TvheadendPlayer implements Player.EventListener {
             mSubtitleView = getSubtitleView(captionStyle, fontScale);
 
             if (mSubtitleView != null) {
-                mExoPlayer.addTextOutput(mSubtitleView);
+                player.addTextOutput(mSubtitleView);
             }
         }
 
@@ -328,7 +328,7 @@ public class TvheadendPlayer implements Player.EventListener {
             TextView textView = mOverlayView.findViewById(R.id.debug_text_view);
             textView.setVisibility(View.VISIBLE);
             return new DebugTextViewHelper(
-                    mExoPlayer, textView);
+                    player, textView);
         } else {
             return null;
         }
@@ -361,14 +361,14 @@ public class TvheadendPlayer implements Player.EventListener {
         mTrackSelector = buildTrackSelector();
         mLoadControl = buildLoadControl();
 
-        mExoPlayer = ExoPlayerFactory.newSimpleInstance(mRenderersFactory, mTrackSelector, mLoadControl);
-        mExoPlayer.addListener(this);
+        player = ExoPlayerFactory.newSimpleInstance(mRenderersFactory, mTrackSelector, mLoadControl);
+        player.addListener(this);
 
         // Add the EventLogger
         mEventLogger = new EventLogger(mTrackSelector);
-        mExoPlayer.addListener(mEventLogger);
-        mExoPlayer.addAudioDebugListener(mEventLogger);
-        mExoPlayer.addVideoDebugListener(mEventLogger);
+        player.addListener(mEventLogger);
+        player.addAudioDebugListener(mEventLogger);
+        player.addVideoDebugListener(mEventLogger);
 
         final String streamProfile = mSharedPreferences.getString(
                 Constants.KEY_HTSP_STREAM_PROFILE,

@@ -4,7 +4,10 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/android-tvheadend.iml" filepath="$PROJECT_DIR$/android-tvheadend.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/android-tvheadend-diamond.iml" filepath="$PROJECT_DIR$/.idea/android-tvheadend-diamond.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/android-tvheadend-exo-2.6.1.iml" filepath="$PROJECT_DIR$/.idea/android-tvheadend-exo-2.6.1.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/extensions/ffmpeg/extension-ffmpeg.iml" filepath="$PROJECT_DIR$/extensions/ffmpeg/extension-ffmpeg.iml" />
       <module fileurl="file://$PROJECT_DIR$/extensions/ffmpeg/extension-ffmpeg.iml" filepath="$PROJECT_DIR$/extensions/ffmpeg/extension-ffmpeg.iml" />
     </modules>
   </component>
