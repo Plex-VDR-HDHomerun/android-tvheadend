@@ -40,9 +40,9 @@ public class TrickPlayController {
         }
     };
 
-    public TrickPlayController(Handler handler, PositionReference position, ExoPlayer player) {
+    public TrickPlayController(Handler handler, PositionReference position, ExoPlayer mExoPlayer) {
         this.position = position;
-        this.mExoPlayer = player;
+        this.mExoPlayer = mExoPlayer;
         this.handler = handler;
     }
 
