@@ -231,9 +231,19 @@ public class TvheadendPlayer implements Player.EventListener {
         }
     }
 
-    public void seek(long position) {
-        long p = this.position.timeUsFromPosition(Math.max(position, this.position.getStartPosition()));
-        player.seekTo(p / 1000);
+
+    public void seek(long timeMs) {
+        if (mDataSource != null) {
+            Log.d(TAG, "Seeking to time: " + timeMs);
+
+            long seekPts = (timeMs * 1000) - mDataSource.getTimeshiftStartTime();
+            seekPts = Math.max(seekPts, mDataSource.getTimeshiftStartPts()) / 1000;
+            Log.d(TAG, "Seeking to PTS: " + seekPts);
+
+            player.seekTo(seekPts);
+        } else {
+            Log.w(TAG, "Unable to seek, no HtspDataSource available");
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
