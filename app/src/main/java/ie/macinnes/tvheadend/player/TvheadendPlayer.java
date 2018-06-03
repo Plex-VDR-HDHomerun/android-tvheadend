@@ -189,6 +189,7 @@ public class TvheadendPlayer implements Player.EventListener {
     }
 
     public void setSurface(Surface surface) {
+        trickPlayController.activated();
         player.setVideoSurface(surface);
         trickPlayController.postTick();
     }
@@ -254,38 +255,41 @@ public class TvheadendPlayer implements Player.EventListener {
             mMediaSource.releaseSource();
         }
     }
-    public long getTimeshiftStartPosition() {
-        if (mDataSource != null) {
-            long startTime = mDataSource.getTimeshiftStartTime();
-            if (startTime != INVALID_TIMESHIFT_TIME) {
-                // For live content
-                return startTime / 1000;
-            } else {
-                // For recorded content
-                return 0;
-            }
-        } else {
-            Log.w(TAG, "Unable to getTimeshiftStartPosition, no HtspDataSource available");
-        }
 
-        return INVALID_TIMESHIFT_TIME;
+    public long getStartPosition() {
+        return position.getStartPosition();
     }
 
-    public long getTimeshiftCurrentPosition() {
-        if (mDataSource != null) {
-            long offset = mDataSource.getTimeshiftOffsetPts();
-            if (offset != INVALID_TIMESHIFT_TIME) {
-                // For live content
-                return System.currentTimeMillis() + (offset / 1000);
-            } else {
-                // For recorded content
-                player.getCurrentPosition();
-            }
-        } else {
-            Log.w(TAG, "Unable to getTimeshiftCurrentPosition, no HtspDataSource available");
+    public long getEndPosition() {
+        return position.getEndPosition();
+    }
+
+    public long getCurrentPosition() {
+        long timeUs = player.getCurrentPosition() * 1000;
+        long startPos = position.getStartPosition();
+        long endPos = position.getEndPosition();
+
+        long pos = Math.max(position.positionFromTimeUs(timeUs), startPos);
+
+        // clamp to end position (if we already have a valid endposition)
+        if(endPos > startPos) {
+            return Math.min(pos, endPos);
         }
 
-        return INVALID_TIMESHIFT_TIME;
+        return pos;
+    }
+
+    public long getBufferedPosition() {
+        long timeUs = player.getBufferedPosition() * 1000;
+        return position.positionFromTimeUs(timeUs);
+    }
+
+    public long getDurationSinceStart() {
+        return getCurrentPosition() - getStartPosition();
+    }
+
+    public long getDuration() {
+        return position.getDuration();
     }
 
     public View getOverlayView(CaptioningManager.CaptionStyle captionStyle, float fontScale) {

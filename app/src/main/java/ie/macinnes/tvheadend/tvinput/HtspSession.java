@@ -190,7 +190,7 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
     @Override
     public void onTimeShiftResume() {
         Log.d(TAG, "onTimeShiftResume");
-        mTvheadendPlayer.resume();
+        mTvheadendPlayer.play();
     }
 
     @Override
@@ -213,16 +213,24 @@ public class HtspSession extends TvInputService.Session implements TvheadendPlay
         mTvheadendPlayer.setPlaybackParams(params);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public long onTimeShiftGetStartPosition() {
-        return mTvheadendPlayer.getTimeshiftStartPosition();
+        if(mTvheadendPlayer == null) {
+            return System.currentTimeMillis();
+        }
+
+        return mTvheadendPlayer.getStartPosition();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public long onTimeShiftGetCurrentPosition() {
-        return mTvheadendPlayer.getTimeshiftCurrentPosition();
+        long currentPos = System.currentTimeMillis();
+
+        if(mTvheadendPlayer == null) {
+            return currentPos;
+        }
+
+        return mTvheadendPlayer.getCurrentPosition();
     }
 
     // Inner Classes

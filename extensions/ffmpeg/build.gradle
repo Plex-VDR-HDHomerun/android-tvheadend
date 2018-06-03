@@ -15,7 +15,7 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 'android-27'
-    buildToolsVersion '26.0.3'
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         minSdkVersion 22
@@ -50,6 +50,6 @@ android {
 }
 
 dependencies {
-    compile "com.android.support:support-core-utils:27.0.1"
+    compile "com.android.support:support-core-utils:27.1.0"
     compile "com.google.android.exoplayer:exoplayer-core:2.6.1"
 }
