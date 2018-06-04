@@ -76,6 +76,7 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     // compile(name:'vlc-android-sdk-release', ext:'aar') // Used for testing local libvlc builds
     compile project(':htsp')
+    compile files('libs/exoplayer.jar')
     compile 'com.android.support:support-v4:25.0.0'
     compile 'com.android.support:leanback-v17:25.0.0'
     compile 'com.android.support:preference-leanback-v17:25.0.0'
