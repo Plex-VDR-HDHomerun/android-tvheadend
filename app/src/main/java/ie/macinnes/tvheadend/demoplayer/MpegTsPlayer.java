@@ -36,14 +36,14 @@ import com.google.android.exoplayer.audio.AudioCapabilities;
 import com.google.android.exoplayer.audio.AudioTrack;
 import com.google.android.exoplayer.upstream.DataSource;
 import com.android.tv.common.SoftPreconditions;
-import com.android.tv.tuner.data.Cea708Data;
-import com.android.tv.tuner.data.Cea708Data.CaptionEvent;
-import com.android.tv.tuner.data.TunerChannel;
+import ie.macinnes.tvheadend.tvinput.data.Cea708Data;
+import ie.macinnes.tvheadend.tvinput.data.Cea708Data.CaptionEvent;
+import ie.macinnes.tvheadend.tvinput.data.TunerChannel;
 import com.android.tv.tuner.exoplayer.ac3.Ac3PassthroughTrackRenderer;
 import com.android.tv.tuner.exoplayer.ac3.Ac3TrackRenderer;
 import com.android.tv.tuner.source.TsDataSource;
 import com.android.tv.tuner.source.TsDataSourceManager;
-import com.android.tv.tuner.tvinput.EventDetector;
+import ie.macinnes.tvheadend.tvinput.EventDetector;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

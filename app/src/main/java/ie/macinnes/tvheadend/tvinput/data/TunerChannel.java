@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package com.android.tv.tuner.data;
+package ie.macinnes.tvheadend.tvinput.data;
 
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import com.android.tv.tuner.data.nano.Channel;
-import com.android.tv.tuner.data.nano.Channel.TunerChannelProto;
-import com.android.tv.tuner.data.nano.Track.AtscAudioTrack;
-import com.android.tv.tuner.data.nano.Track.AtscCaptionTrack;
+import ie.macinnes.tvheadend.tvinput.data.nano.Channel;
+import ie.macinnes.tvheadend.tvinput.data.nano.Channel.TunerChannelProto;
+import ie.macinnes.tvheadend.tvinput.data.nano.Track.AtscAudioTrack;
+import ie.macinnes.tvheadend.tvinput.data.nano.Track.AtscCaptionTrack;
 import com.android.tv.tuner.util.Ints;
 import com.android.tv.tuner.util.StringUtils;
 import com.google.protobuf.nano.MessageNano;

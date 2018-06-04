@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.android.tv.tuner.data;
+package ie.macinnes.tvheadend.tvinput.data;
 
-import com.android.tv.tuner.cc.Cea708Parser;
+import ie.macinnes.tvheadend.tvinput.cc.Cea708Parser;
 
 import android.graphics.Color;
 import android.support.annotation.NonNull;

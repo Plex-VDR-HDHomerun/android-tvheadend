@@ -15,10 +15,10 @@
  */
 
 
-package com.android.tv.tuner.data;
+package ie.macinnes.tvheadend.tvinput.data;
 
-import com.android.tv.tuner.data.nano.Track.AtscAudioTrack;
-import com.android.tv.tuner.data.nano.Track.AtscCaptionTrack;
+import ie.macinnes.tvheadend.tvinput.data.nano.Track.AtscAudioTrack;
+import ie.macinnes.tvheadend.tvinput.data.nano.Track.AtscCaptionTrack;
 
 import java.util.List;
 

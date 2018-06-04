@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.tv.tuner.data;
+package ie.macinnes.tvheadend.tvinput.data;
 
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
@@ -22,9 +22,9 @@ import android.text.format.DateUtils;
 
 import com.android.tv.tuner.data.nano.Track.AtscAudioTrack;
 import com.android.tv.tuner.data.nano.Track.AtscCaptionTrack;
-import com.android.tv.tuner.ts.SectionParser;
-import com.android.tv.tuner.util.ConvertUtils;
-import com.android.tv.tuner.util.StringUtils;
+import ie.macinnes.tvheadend.tvinput.ts.SectionParser;
+import ie.macinnes.tvheadend.util.ConvertUtils;
+import ie.macinnes.tvheadend.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;

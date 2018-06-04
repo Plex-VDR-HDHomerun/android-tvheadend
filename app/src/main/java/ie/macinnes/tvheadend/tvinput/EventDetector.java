@@ -25,8 +25,8 @@ import com.android.tv.tuner.data.nano.Track.AtscAudioTrack;
 import com.android.tv.tuner.data.nano.Track.AtscCaptionTrack;
 import com.android.tv.tuner.data.TunerChannel;
 import com.android.tv.tuner.ts.TsParser;
-import com.android.tv.tuner.data.PsiData;
-import com.android.tv.tuner.data.PsipData;
+import ie.macinnes.tvheadend.tvinput.data.PsiData;
+import ie.macinnes.tvheadend.tvinput.data.PsipData;
 
 import java.util.ArrayList;
 import java.util.HashSet;
