@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.tv.tuner.exoplayer.buffer;
+package ie.macinnes.tvheadend.player.exoplayer.buffer;
 
 import android.media.MediaCodec;
 import android.os.ConditionVariable;
@@ -28,7 +28,7 @@ import com.google.android.exoplayer.MediaFormat;
 import com.google.android.exoplayer.SampleHolder;
 import com.google.android.exoplayer.util.MimeTypes;
 import com.android.tv.common.SoftPreconditions;
-import com.android.tv.tuner.exoplayer.buffer.RecordingSampleBuffer.BufferReason;
+import ie.macinnes.tvheadend.player.exoplayer.buffer.RecordingSampleBuffer.BufferReason;
 
 import java.io.IOException;
 import java.util.List;

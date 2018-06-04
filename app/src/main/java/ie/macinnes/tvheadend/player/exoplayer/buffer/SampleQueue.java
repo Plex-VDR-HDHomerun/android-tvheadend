@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.tv.tuner.exoplayer.buffer;
+package ie.macinnes.tvheadend.player.exoplayer.buffer;
 
 import com.google.android.exoplayer.SampleHolder;
 import com.google.android.exoplayer.SampleSource;

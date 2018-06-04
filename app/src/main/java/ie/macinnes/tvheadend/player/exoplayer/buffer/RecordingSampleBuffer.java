@@ -80,7 +80,7 @@ public class RecordingSampleBuffer implements BufferManager.SampleBuffer,
     private int mTrackCount;
     private boolean[] mTrackSelected;
     private List<String> mIds;
-    private List<com.android.tv.tuner.exoplayer.buffer.SampleQueue> mReadSampleQueues;
+    private List<ie.macinnes.tvheadend.player.exoplayer.buffer.SampleQueue> mReadSampleQueues;
     private final SamplePool mSamplePool = new SamplePool();
     private long mLastBufferedPositionUs = C.UNKNOWN_TIME_US;
     private long mCurrentPlaybackPositionUs = 0;
@@ -90,9 +90,9 @@ public class RecordingSampleBuffer implements BufferManager.SampleBuffer,
 
     // Eos was reached in I/O thread of {@link SampleChunkIoHelper}.
     private volatile boolean mEos;
-    private com.android.tv.tuner.exoplayer.buffer.SampleChunkIoHelper mSampleChunkIoHelper;
-    private final com.android.tv.tuner.exoplayer.buffer.SampleChunkIoHelper.IoCallback mIoCallback =
-            new com.android.tv.tuner.exoplayer.buffer.SampleChunkIoHelper.IoCallback() {
+    private ie.macinnes.tvheadend.player.exoplayer.buffer.SampleChunkIoHelper mSampleChunkIoHelper;
+    private final ie.macinnes.tvheadend.player.exoplayer.buffer.SampleChunkIoHelper.IoCallback mIoCallback =
+            new ie.macinnes.tvheadend.player.exoplayer.buffer.SampleChunkIoHelper.IoCallback() {
                 @Override
                 public void onIoReachedEos() {
                     mEos = true;
@@ -133,7 +133,7 @@ public class RecordingSampleBuffer implements BufferManager.SampleBuffer,
         mIds = ids;
         mTrackSelected = new boolean[mTrackCount];
         mReadSampleQueues = new ArrayList<>();
-        mSampleChunkIoHelper = new com.android.tv.tuner.exoplayer.buffer.SampleChunkIoHelper(ids, mediaFormats, mBufferReason,
+        mSampleChunkIoHelper = new ie.macinnes.tvheadend.player.exoplayer.buffer.SampleChunkIoHelper(ids, mediaFormats, mBufferReason,
                 mBufferManager, mSamplePool, mIoCallback);
         for (int i = 0; i < mTrackCount; ++i) {
             mReadSampleQueues.add(i, new com.android.tv.tuner.exoplayer.buffer.SampleQueue(mSamplePool));
