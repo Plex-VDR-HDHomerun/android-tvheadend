@@ -26,7 +26,7 @@ import android.util.Pair;
 
 import com.google.android.exoplayer.SampleHolder;
 import ie.macinnes.tvheadend.demoplayer.SampleExtractor;
-import com.android.tv.util.Utils;
+import ie.macinnes.tvheadend.MiscUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -465,7 +465,7 @@ public class BufferManager {
                                 + "earliestChunk size = %d; %s@%d (%s)",
                         mBufferSize, pendingDelete, earliestChunk.getSize(), earliestChunkId,
                         earliestChunk.getStartPositionUs(),
-                        Utils.toIsoDateTimeString(earliestChunk.getCreatedTimeMs())));
+                        MiscUtils.toIsoDateTimeString(earliestChunk.getCreatedTimeMs())));
             }
             ChunkEvictedListener listener = mEvictListeners.get(earliestChunkId);
             if (listener != null) {

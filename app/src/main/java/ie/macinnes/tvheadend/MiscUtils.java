@@ -24,10 +24,19 @@ import android.util.Base64;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
+
+
 
 
 public class MiscUtils {
     private static final String TAG = MiscUtils.class.getName();
+    private static final SimpleDateFormat ISO_8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ",
+            Locale.US);
+
 
     public static Map<String, String> createBasicAuthHeader(String username, String password) {
         Map<String, String> headerMap = new HashMap<String, String>();
@@ -56,6 +65,14 @@ public class MiscUtils {
         editor.putBoolean(Constants.KEY_SETUP_COMPLETE, isSetupComplete);
         editor.apply();
     }
+
+    /**
+     * Converts time in milliseconds to a ISO 8061 string.
+     */
+    public static String toIsoDateTimeString(long timeMillis) {
+        return ISO_8601.format(new Date(timeMillis));
+    }
+
 
     public static boolean isSetupComplete(Context context) {
         SharedPreferences sharedPreferences = context.getSharedPreferences(
